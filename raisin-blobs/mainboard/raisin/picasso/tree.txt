@@ -1,0 +1,1 @@
+Coreboot/raisin-blobs/mainboard/raisin/picasso
