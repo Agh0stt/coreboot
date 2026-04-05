@@ -1,0 +1,46 @@
+## SPDX-License-Identifier: GPL-2.0-only
+
+config BOARD_RAISIN_PICASSO
+	bool "Raisin Picasso"
+	select SOC_AMD_PICASSO
+	select BOARD_ROMSIZE_KB_8192
+	select HAVE_ACPI_TABLES
+	select HAVE_ACPI_RESUME
+	select AMD_SOC_CONSOLE_UART
+	select DRIVERS_UART_8250IO
+	select BOOTSPLASH_IMAGE
+	select GENERATE_SMBIOS_TABLES
+
+if BOARD_RAISIN_PICASSO
+
+config MAINBOARD_DIR
+	default "raisin/picasso"
+
+config MAINBOARD_PART_NUMBER
+	default "Raisin Picasso"
+
+config MAINBOARD_VENDOR
+	default "Raisin"
+
+config DEVICETREE
+	default "devicetree.cb"
+
+config BOOTSPLASH_FILE
+	default "bootsplash.jpg"
+
+config PAYLOAD_DEFAULT
+	default PAYLOAD_TIANOCORE
+
+config TIANOCORE_BOOT_MANAGER_ESCAPE
+	default y
+
+config TIANOCORE_CBMEM_CONSOLE
+	default y
+
+config VBOOT
+	default n
+
+config USE_OPTION_TABLE
+	default n
+
+endif # BOARD_RAISIN_PICASSO

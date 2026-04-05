@@ -1,0 +1,6 @@
+Board name: Eclipse Picasso
+Category: misc
+ROM package: SOIC-8
+ROM protocol: SPI
+ROM socketed: n
+Flashrom support: y

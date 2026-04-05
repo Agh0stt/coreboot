@@ -1,0 +1,137 @@
+chip soc/amd/picasso
+
+    # -------------------------------------------------------
+    # PCIe clock map
+    # GPP_CLK0 = NVMe/SSD (x4), GPP_CLK1 = LAN (x1)
+    # -------------------------------------------------------
+    register "GppClkMap" = "{
+        [GPP_CLK0] = GPP_CLK_REQ,   /* NVMe SSD */
+        [GPP_CLK1] = GPP_CLK_REQ,   /* LAN */
+        [GPP_CLK2] = GPP_CLK_OFF,
+        [GPP_CLK3] = GPP_CLK_OFF,
+        [GPP_CLK4] = GPP_CLK_OFF,
+    }"
+
+    # -------------------------------------------------------
+    # DDR4 SPD — DIMM A unused, DIMM B at I2C2 addr 0x51
+    # -------------------------------------------------------
+    register "ddr4_spd_addr" = "{
+        [0] = 0x00,
+        [1] = 0x51,
+        [2] = 0x00,
+        [3] = 0x00,
+    }"
+
+    # -------------------------------------------------------
+    # USB2 ports — from schematic (image 1)
+    # USB0: Type-C (USBC0), USB1/2: Type-A, rest empty
+    # OC pins: OC0=GPIO16, OC1=GPIO17, OC2=GPIO18, OC3=GPIO24
+    # -------------------------------------------------------
+    register "usb2_port[0]" = "USB2_PORT_TYPE_C(USB_OC_0)"
+    register "usb2_port[1]" = "USB2_PORT_LONG(USB_OC_1)"
+    register "usb2_port[2]" = "USB2_PORT_LONG(USB_OC_2)"
+    register "usb2_port[3]" = "USB2_PORT_EMPTY"
+    register "usb2_port[4]" = "USB2_PORT_EMPTY"
+    register "usb2_port[5]" = "USB2_PORT_EMPTY"
+
+    # -------------------------------------------------------
+    # USB3 ports
+    # -------------------------------------------------------
+    register "usb3_port[0]" = "USB3_PORT_DEFAULT(USB_OC_0)"
+    register "usb3_port[1]" = "USB3_PORT_DEFAULT(USB_OC_1)"
+    register "usb3_port[2]" = "USB3_PORT_EMPTY"
+    register "usb3_port[3]" = "USB3_PORT_EMPTY"
+
+    # -------------------------------------------------------
+    # GPIO table
+    # Sources: gpio.h + schematic images 1-5
+    # -------------------------------------------------------
+    register "gpio_table" = "{
+        /* UART0 — debug console (image 2: R/D15-16 area) */
+        PAD_NF(GPIO_136, UART0_RXD,   PULL_NONE),
+        PAD_NF(GPIO_138, UART0_TXD,   PULL_NONE),
+        PAD_NF(GPIO_137, UART0_RTS_L, PULL_NONE),
+        PAD_NF(GPIO_135, UART0_CTS_L, PULL_NONE),
+
+        /* LPC bus — EC communication (image 2) */
+        PAD_NF(GPIO_32,  LPC_RST_L,  PULL_NONE),
+        PAD_NF(GPIO_74,  LPCCLK0,    PULL_NONE),
+        PAD_NF(GPIO_75,  LPCCLK1,    PULL_NONE),
+        PAD_NF(GPIO_87,  SERIRQ,     PULL_NONE),
+        PAD_NF(GPIO_104, LAD0,       PULL_NONE),
+        PAD_NF(GPIO_105, LAD1,       PULL_NONE),
+        PAD_NF(GPIO_106, LAD2,       PULL_NONE),
+        PAD_NF(GPIO_107, LAD3,       PULL_NONE),
+        PAD_NF(GPIO_108, LDRQ0_L,    PULL_NONE),
+        PAD_NF(GPIO_109, LFRAME_L,   PULL_NONE),
+
+        /* SPI flash */
+        PAD_NF(GPIO_67,  SPI_ROM_REQ, PULL_NONE),
+        PAD_NF(GPIO_76,  SPI_ROM_GNT, PULL_NONE),
+
+        /* PCIe CLKREQ — SSD=CLK_REQ1, LAN=CLK_REQ2 (image 2) */
+        PAD_NF(GPIO_115, CLK_REQ1_L, PULL_UP_L),
+        PAD_NF(GPIO_116, CLK_REQ2_L, PULL_UP_L),
+
+        /* KB/EC reset — KBRST_L (image 2: KB_RST_L) */
+        PAD_NF(GPIO_129, KBRST_L, PULL_NONE),
+
+        /* I2C2 — SPD for DIMM B (image 5: BC20/BA20) */
+        PAD_NF(GPIO_113, I2C2_SCL, PULL_NONE),
+        PAD_NF(GPIO_114, I2C2_SDA, PULL_NONE),
+
+        /* USB overcurrent (image 1: USB_DC0-3_L) */
+        PAD_NF(GPIO_16, USB_OC0_L, PULL_NONE),
+        PAD_NF(GPIO_17, USB_OC1_L, PULL_NONE),
+        PAD_NF(GPIO_18, USB_OC2_L, PULL_NONE),
+        PAD_NF(GPIO_24, USB_OC3_L, PULL_NONE),
+
+        /* PWR/RESET/WAKE — native function (standard laptop signals) */
+        PAD_NF(GPIO_0,  PWR_BTN_L, PULL_NONE),
+        PAD_NF(GPIO_1,  SYS_RESET_L, PULL_NONE),
+        PAD_NF(GPIO_2,  WAKE_L,    PULL_NONE),
+    }"
+
+    device domain 0 on
+        device ref iommu on end
+
+        # PCIe A: NVMe SSD (x4) — GPP_RXP4-7 from image 4
+        device ref gpp_bridge_a on
+            device ref gpp_bridge_a_4 on end  # x4 NVMe
+        end
+
+        # PCIe B: LAN (x1) — GPP_RXP0 from image 4
+        device ref gpp_bridge_b on
+            device ref gpp_bridge_b_0 on end  # x1 LAN
+        end
+
+        # GFX: dGPU slot x8 — P_GFX_RXP0-7 from image 4
+        # Comment out if no dGPU on your board revision
+        device ref gpp_bridge_c on
+        end
+
+        # LPC bridge — EC is on LPC
+        device ref lpc_bridge on
+            # EC
+            chip ec/unknown
+                device pnp 0c09.0 on end
+            end
+        end
+
+        # HDA audio
+        device ref hda on end
+
+        # I2C2 — SPD only, no touchpad on this board
+        device ref i2c_2 on end
+
+        # UART0 — debug console
+        device ref uart_0 on end
+
+        # USB controllers
+        device ref usb3_0 on end
+        device ref usb3_1 on end
+
+        # DisplayPort — DP0-3 lanes (image 3)
+        # Handled by AGESA/VBIOS, no device node needed for basic boot
+    end
+end
